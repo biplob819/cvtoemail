@@ -1,0 +1,25 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+alembic
+aiosqlite
+openai
+python-docx
+PyPDF2
+python-multipart
+pydantic
+pydantic-settings
+httpx
+beautifulsoup4
+python-dotenv
+aiofiles
+jinja2
+celery[redis]
+redis
+cryptography
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx
