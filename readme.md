@@ -155,7 +155,7 @@ python -m pytest tests/ -m unit -v
 python -m pytest tests/ -m integration -v
 ```
 
-**Current results**: 110 tests, 89% coverage
+**Current results**: 151 tests passing
 
 ### Frontend Tests (Vitest)
 
@@ -169,6 +169,7 @@ python -m pytest tests/ -m integration -v
 | `components/Layout.test.tsx` | Unit | Sidebar navigation, links, brand name |
 | `api.test.ts` | Unit | API client functions (getCV, updateCV, uploadCV, healthCheck, sources) |
 | `pages/Dashboard.test.tsx` | Integration | Loading, onboarding, regular dashboard, error states |
+| `pages/Jobs.test.tsx` | Integration | Jobs table, filters, expand panel, bulk actions |
 | `pages/Sources.test.tsx` | Integration | Sources page: form, table, actions, validations, error states |
 | `App.test.tsx` | Integration | Route setup, page rendering, navigation |
 
@@ -180,6 +181,8 @@ npm test             # run all tests once
 npm run test:watch   # run in watch mode
 npm run test:coverage # run with coverage report
 ```
+
+**Current results**: 102 tests passing (7 files)
 
 ### Testing Rules for AI Assistant
 

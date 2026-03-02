@@ -73,8 +73,8 @@
 - [x] Write integration tests for Dashboard page (loading, onboarding, regular dashboard)
 - [x] Write integration tests for Layout component (navigation, sidebar)
 - [x] Write integration tests for App component (routing, page rendering)
-- [x] Run all backend tests: **57 passed, 93% coverage**
-- [x] Run all frontend tests: **62 passed (5 test files)**
+- [x] Run all backend tests: **57 passed, 93% coverage** *(total suite now at 151 passed)*
+- [x] Run all frontend tests: **62 passed (5 test files)** *(total suite now at 102 passed, 7 files)*
 
 ---
 
@@ -118,7 +118,7 @@
 - [x] Write integration test for "Scan Now" endpoint
 - [x] Write unit tests for URL validation and dedup logic
 - [x] Write frontend tests for Sources page (form, table, actions)
-- [x] Run all tests (M1 + M2): **110 backend passed (89% coverage), 84 frontend passed (6 test files)**
+- [x] Run all tests (M1 + M2): **110 backend passed (89% coverage), 84 frontend passed (6 test files)** *(total suite now at 151 backend / 102 frontend)*
 
 ---
 
