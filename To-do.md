@@ -302,5 +302,5 @@
 | M2        | Job Sources & Scraping             | Completed   |
 | M3        | Scheduled Monitoring               | Completed   |
 | M4        | CV Tailoring & PDF                 | Completed   |
-| M5        | Email Notifications                | Not Started |
-| M6        | Dashboard, Polish & Deploy         | Not Started |
+| M5        | Email Notifications                | Completed   |
+| M6        | Dashboard, Polish & Deploy         | Completed   |

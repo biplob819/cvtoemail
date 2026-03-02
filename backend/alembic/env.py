@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base
-from app.models import CVProfile, AppSettings, JobSource, Job  # noqa: F401 -- ensure models are registered
+from app.models import CVProfile, AppSettings, JobSource, Job, Application  # noqa: F401 -- ensure models are registered
 
 config = context.config
 

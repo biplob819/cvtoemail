@@ -77,7 +77,7 @@ export default function Layout() {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border text-xs text-text-muted">
-          v0.1.0 &middot; Milestone 1
+          v1.0.0 &middot; All Milestones Complete
         </div>
       </aside>
 
