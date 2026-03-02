@@ -229,29 +229,27 @@ async def update_job(
     db: AsyncSession = Depends(get_db),
 ):
     """Update a job's status or is_new flag."""
-    # Fetch job
-    stmt = select(Job).where(Job.id == job_id)
+    # Fetch job with source name in a single query
+    stmt = select(Job, JobSource.portal_name).join(
+        JobSource, Job.source_id == JobSource.id
+    ).where(Job.id == job_id)
     result = await db.execute(stmt)
-    job = result.scalar_one_or_none()
-    
-    if not job:
+    row = result.first()
+
+    if not row:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
+    job, source_name = row
+
     # Update fields
     if update_data.status is not None:
         job.status = update_data.status
     if update_data.is_new is not None:
         job.is_new = update_data.is_new
-    
+
     await db.commit()
-    await db.refresh(job)
-    
-    # Fetch source name for response
-    source_stmt = select(JobSource.portal_name).where(JobSource.id == job.source_id)
-    source_result = await db.execute(source_stmt)
-    source_name = source_result.scalar()
-    
-    # Build response
+
+    # Build response from in-memory job object (no refresh needed — values were set above)
     job_dict = {
         "id": job.id,
         "source_id": job.source_id,
@@ -265,7 +263,7 @@ async def update_job(
         "is_new": job.is_new,
         "discovered_at": job.discovered_at,
     }
-    
+
     return JobResponse(**job_dict)
 
 
@@ -317,23 +315,23 @@ async def generate_cv(job_id: int, db: AsyncSession = Depends(get_db)):
     
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    
-    # Check if job has a description
-    if not job.description or len(job.description.strip()) < 50:
-        raise HTTPException(
-            status_code=400,
-            detail="Job description is too short or missing. Cannot generate tailored CV."
-        )
-    
-    # Fetch CV profile
+
+    # Fetch CV profile first — if missing, this is the primary error to surface
     cv_stmt = select(CVProfile).limit(1)
     cv_result = await db.execute(cv_stmt)
     cv_profile = cv_result.scalar_one_or_none()
-    
+
     if not cv_profile:
         raise HTTPException(
             status_code=400,
             detail="No CV profile found. Please upload and configure your CV first."
+        )
+
+    # Check if job has a sufficient description
+    if not job.description or len(job.description.strip()) < 50:
+        raise HTTPException(
+            status_code=400,
+            detail="Job description is too short or missing. Cannot generate tailored CV."
         )
     
     # Prepare CV data

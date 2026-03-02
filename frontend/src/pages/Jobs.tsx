@@ -259,10 +259,11 @@ export default function Jobs() {
         <Card className="mb-4 p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
+              <label htmlFor="filter-source" className="block text-sm font-medium text-text mb-1.5">
                 Source
               </label>
               <select
+                id="filter-source"
                 className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-text focus:outline-none focus:ring-2 focus:ring-primary"
                 value={filterSourceId || ""}
                 onChange={(e) =>
@@ -279,10 +280,11 @@ export default function Jobs() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text mb-1.5">
+              <label htmlFor="filter-status" className="block text-sm font-medium text-text mb-1.5">
                 Status
               </label>
               <select
+                id="filter-status"
                 className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-text focus:outline-none focus:ring-2 focus:ring-primary"
                 value={filterStatus || ""}
                 onChange={(e) => setFilterStatus(e.target.value || undefined)}

@@ -161,7 +161,10 @@ Return the tailored CV in the EXACT same JSON structure. Remember:
             print(f"JSON decode error on attempt {attempt + 1}: {e}")
             if attempt == max_retries - 1:
                 raise Exception(f"Failed to parse OpenAI response after {max_retries} attempts")
-            
+
+        except ValueError:
+            raise  # validation errors (e.g. missing required fields) are not retried
+
         except Exception as e:
             print(f"OpenAI API error on attempt {attempt + 1}: {e}")
             if attempt == max_retries - 1:

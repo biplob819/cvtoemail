@@ -125,58 +125,58 @@ async def process_source(source_id: int, source_url: str, source_name: str) -> d
         logger.info(f"Scraping source: {source_name} ({source_url})")
         job_listings = await scrape_source(source_url)
         result["jobs_found"] = len(job_listings)
-        
+
         if not job_listings:
             logger.info(f"No jobs found for {source_name}")
-            return result
-        
-        # Get DB session
+
+        # Always open a DB session to process results and update last_checked
         with SyncSession() as session:
-            # Get existing job URLs for this source (for deduplication)
-            stmt = select(Job.url).where(Job.source_id == source_id)
-            existing_urls = set(session.execute(stmt).scalars().all())
-            
-            # Process each job listing
-            for job_data in job_listings:
-                job_url = job_data.get("url")
-                if not job_url:
-                    continue
-                
-                # Deduplicate by URL
-                if job_url in existing_urls:
-                    continue
-                
-                try:
-                    # Fetch full job description
-                    logger.info(f"Fetching description for: {job_data.get('title', 'Untitled')}")
-                    description = await fetch_job_description(job_url)
-                    
-                    # Create new job record
-                    new_job = Job(
-                        source_id=source_id,
-                        title=job_data.get("title", "Untitled Position")[:200],
-                        company=job_data.get("company", "")[:200],
-                        location=job_data.get("location", "")[:200],
-                        description=description,
-                        url=job_url,
-                        status="New",
-                        is_new=True,
-                    )
-                    
-                    session.add(new_job)
-                    session.commit()
-                    
-                    result["new_jobs"] += 1
-                    logger.info(f"Stored new job: {new_job.title} at {new_job.company}")
-                    
-                except Exception as e:
-                    error_msg = f"Failed to store job {job_url}: {str(e)}"
-                    logger.error(error_msg)
-                    result["errors"].append(error_msg)
-                    # Continue processing other jobs
-                    continue
-            
-            # Update last_checked timestamp for the source
+            if job_listings:
+                # Get existing job URLs for this source (for deduplication)
+                stmt = select(Job.url).where(Job.source_id == source_id)
+                existing_urls = set(session.execute(stmt).scalars().all())
+
+                # Process each job listing
+                for job_data in job_listings:
+                    job_url = job_data.get("url")
+                    if not job_url:
+                        continue
+
+                    # Deduplicate by URL
+                    if job_url in existing_urls:
+                        continue
+
+                    try:
+                        # Fetch full job description
+                        logger.info(f"Fetching description for: {job_data.get('title', 'Untitled')}")
+                        description = await fetch_job_description(job_url)
+
+                        # Create new job record
+                        new_job = Job(
+                            source_id=source_id,
+                            title=job_data.get("title", "Untitled Position")[:200],
+                            company=job_data.get("company", "")[:200],
+                            location=job_data.get("location", "")[:200],
+                            description=description,
+                            url=job_url,
+                            status="New",
+                            is_new=True,
+                        )
+
+                        session.add(new_job)
+                        session.commit()
+
+                        result["new_jobs"] += 1
+                        logger.info(f"Stored new job: {new_job.title} at {new_job.company}")
+
+                    except Exception as e:
+                        error_msg = f"Failed to store job {job_url}: {str(e)}"
+                        logger.error(error_msg)
+                        result["errors"].append(error_msg)
+                        # Continue processing other jobs
+                        continue
+
+            # Always update last_checked timestamp for the source
             stmt = select(JobSource).where(JobSource.id == source_id)
             source = session.execute(stmt).scalar_one_or_none()
             if source:

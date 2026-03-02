@@ -330,10 +330,8 @@ export function TableHeader({ children, className = "" }: { children: React.Reac
 export function TableRow({
   children,
   className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...props
+}: React.HTMLAttributes<HTMLTableRowElement> & { children: React.ReactNode; className?: string }) {
   return (
     <tr
       className={`
@@ -341,6 +339,7 @@ export function TableRow({
         hover:bg-surface transition-colors
         ${className}
       `}
+      {...props}
     >
       {children}
     </tr>
@@ -351,23 +350,21 @@ export function TableCell({
   children,
   className = "",
   header,
-}: {
+  ...props
+}: React.TdHTMLAttributes<HTMLTableCellElement> & {
   children: React.ReactNode;
   className?: string;
   header?: boolean;
 }) {
-  const base =
-    "px-4 py-3 text-sm text-text";
+  const base = "px-4 py-3 text-sm text-text";
 
   if (header) {
     return (
-      <th
-        className={`${base} font-medium text-text-muted ${className}`}
-      >
+      <th className={`${base} font-medium text-text-muted ${className}`}>
         {children}
       </th>
     );
   }
 
-  return <td className={`${base} ${className}`}>{children}</td>;
+  return <td className={`${base} ${className}`} {...props}>{children}</td>;
 }

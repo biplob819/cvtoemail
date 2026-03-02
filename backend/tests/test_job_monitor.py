@@ -100,12 +100,17 @@ async def test_process_source_success(test_db):
     from app.tasks.job_monitor import process_source
     from app.models.job_source import JobSource
     from app.models.job import Job
-    from sqlalchemy import select
+    from app.database import Base
+    from sqlalchemy import create_engine, select
     from sqlalchemy.orm import sessionmaker
-    from app.database import engine
-    
-    # Create test source
-    async with test_db() as db:
+
+    # Use an isolated in-memory sync SQLite so process_source sees our test data
+    sync_engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(sync_engine)
+    TestSyncSession = sessionmaker(bind=sync_engine, expire_on_commit=False)
+
+    # Insert the source into the sync engine so last_checked can be updated
+    with TestSyncSession() as db:
         source = JobSource(
             id=1,
             url="https://example.com/jobs",
@@ -113,8 +118,8 @@ async def test_process_source_success(test_db):
             is_active=True,
         )
         db.add(source)
-        await db.commit()
-    
+        db.commit()
+
     # Mock scraper to return job listings
     mock_jobs = [
         {
@@ -132,33 +137,31 @@ async def test_process_source_success(test_db):
             "description": "",
         },
     ]
-    
-    with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
-        mock_scrape.return_value = mock_jobs
-        
-        with patch("app.tasks.job_monitor.fetch_job_description", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = "Job description here"
-            
-            result = await process_source(1, "https://example.com/jobs", "Example Corp")
-    
+
+    with patch("app.tasks.job_monitor.SyncSession", TestSyncSession):
+        with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
+            mock_scrape.return_value = mock_jobs
+
+            with patch("app.tasks.job_monitor.fetch_job_description", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = "Job description here"
+
+                result = await process_source(1, "https://example.com/jobs", "Example Corp")
+
     # Verify result
     assert result["jobs_found"] == 2
     assert result["new_jobs"] == 2
     assert result["errors"] == []
-    
-    # Verify jobs were stored (using sync session for testing)
-    from sqlalchemy import create_engine
-    from app.config import settings
-    sync_engine = create_engine(settings.database_url_sync)
-    SyncSession = sessionmaker(bind=sync_engine)
-    
-    with SyncSession() as session:
+
+    # Verify jobs were stored (using the same isolated sync engine)
+    with TestSyncSession() as session:
         jobs = session.execute(select(Job)).scalars().all()
         assert len(jobs) == 2
-        assert jobs[0].title == "Software Engineer"
-        assert jobs[0].status == "New"
-        assert jobs[0].is_new == True
-        assert jobs[1].title == "Product Manager"
+        titles = {j.title for j in jobs}
+        assert "Software Engineer" in titles
+        assert "Product Manager" in titles
+        for job in jobs:
+            assert job.status == "New"
+            assert job.is_new == True
 
 
 @pytest.mark.asyncio
@@ -167,12 +170,17 @@ async def test_process_source_deduplication(test_db):
     from app.tasks.job_monitor import process_source
     from app.models.job_source import JobSource
     from app.models.job import Job
-    from sqlalchemy import select
+    from app.database import Base
+    from sqlalchemy import create_engine, select
     from sqlalchemy.orm import sessionmaker
-    from app.database import engine
-    
-    # Create test source and existing job
-    async with test_db() as db:
+
+    # Use an isolated in-memory sync SQLite so process_source sees our test data
+    sync_engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(sync_engine)
+    TestSyncSession = sessionmaker(bind=sync_engine, expire_on_commit=False)
+
+    # Insert source and existing job directly into the sync engine
+    with TestSyncSession() as db:
         source = JobSource(
             id=1,
             url="https://example.com/jobs",
@@ -180,9 +188,8 @@ async def test_process_source_deduplication(test_db):
             is_active=True,
         )
         db.add(source)
-        await db.commit()
-        
-        # Add existing job
+        db.commit()
+
         existing_job = Job(
             source_id=1,
             title="Existing Job",
@@ -192,8 +199,8 @@ async def test_process_source_deduplication(test_db):
             status="Viewed",
         )
         db.add(existing_job)
-        await db.commit()
-    
+        db.commit()
+
     # Mock scraper to return one existing and one new job
     mock_jobs = [
         {
@@ -211,27 +218,23 @@ async def test_process_source_deduplication(test_db):
             "description": "",
         },
     ]
-    
-    with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
-        mock_scrape.return_value = mock_jobs
-        
-        with patch("app.tasks.job_monitor.fetch_job_description", new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = "Job description"
-            
-            result = await process_source(1, "https://example.com/jobs", "Example Corp")
-    
+
+    with patch("app.tasks.job_monitor.SyncSession", TestSyncSession):
+        with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
+            mock_scrape.return_value = mock_jobs
+
+            with patch("app.tasks.job_monitor.fetch_job_description", new_callable=AsyncMock) as mock_fetch:
+                mock_fetch.return_value = "Job description"
+
+                result = await process_source(1, "https://example.com/jobs", "Example Corp")
+
     # Verify result
     assert result["jobs_found"] == 2
     assert result["new_jobs"] == 1  # Only one new job added
-    
-    # Verify only one new job was added
-    from sqlalchemy import create_engine
-    from app.config import settings
-    sync_engine = create_engine(settings.database_url_sync)
-    SyncSession = sessionmaker(bind=sync_engine)
-    
-    with SyncSession() as session:
-        jobs = session.execute(select(Job)).scalars().all()
+
+    # Verify only one new job was added (using the same sync engine)
+    with TestSyncSession() as db:
+        jobs = db.execute(select(Job)).scalars().all()
         assert len(jobs) == 2  # 1 existing + 1 new
         new_jobs = [j for j in jobs if j.title == "New Job"]
         assert len(new_jobs) == 1
@@ -272,10 +275,17 @@ async def test_process_source_updates_last_checked(test_db):
     """Test that last_checked timestamp is updated after processing."""
     from app.tasks.job_monitor import process_source
     from app.models.job_source import JobSource
-    from sqlalchemy import select
-    
-    # Create test source
-    async with test_db() as db:
+    from app.database import Base
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.orm import sessionmaker
+
+    # Use an isolated in-memory sync SQLite so process_source sees our test data
+    sync_engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(sync_engine)
+    TestSyncSession = sessionmaker(bind=sync_engine, expire_on_commit=False)
+
+    # Insert source directly into the sync engine
+    with TestSyncSession() as db:
         source = JobSource(
             id=1,
             url="https://example.com/jobs",
@@ -284,18 +294,19 @@ async def test_process_source_updates_last_checked(test_db):
             last_checked=None,
         )
         db.add(source)
-        await db.commit()
-    
-    # Mock scraper
-    with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
-        mock_scrape.return_value = []
-        
-        await process_source(1, "https://example.com/jobs", "Example Corp")
-    
-    # Verify last_checked was updated
-    async with test_db() as db:
+        db.commit()
+
+    # Mock scraper to return empty list — last_checked should still be updated
+    with patch("app.tasks.job_monitor.SyncSession", TestSyncSession):
+        with patch("app.tasks.job_monitor.scrape_source", new_callable=AsyncMock) as mock_scrape:
+            mock_scrape.return_value = []
+
+            await process_source(1, "https://example.com/jobs", "Example Corp")
+
+    # Verify last_checked was updated (using the same sync engine)
+    with TestSyncSession() as db:
         stmt = select(JobSource).where(JobSource.id == 1)
-        source = (await db.execute(stmt)).scalar_one()
+        source = db.execute(stmt).scalar_one()
         assert source.last_checked is not None
 
 

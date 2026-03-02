@@ -27,7 +27,7 @@ describe('Layout', () => {
 
   it('renders version info in footer', () => {
     render(<Layout />);
-    expect(screen.getByText(/v0\.1\.0/)).toBeInTheDocument();
+    expect(screen.getByText(/v1\.0\.0/)).toBeInTheDocument();
   });
 
   it('has navigation links with correct hrefs', () => {

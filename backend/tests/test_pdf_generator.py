@@ -140,9 +140,9 @@ class TestGenerateCvHtml:
 
     @pytest.mark.unit
     def test_includes_inter_font(self, sample_cv_data):
-        """The ATS template should reference the Inter font."""
+        """The ATS template should use a standard web-safe font (Arial)."""
         html = generate_cv_html(sample_cv_data)
-        assert "Inter" in html
+        assert "Arial" in html
 
 
 # ---------------------------------------------------------------------------

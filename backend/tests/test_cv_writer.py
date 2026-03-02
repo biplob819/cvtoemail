@@ -280,8 +280,8 @@ async def test_tailor_cv_invalid_json_retries():
                 api_key="test-key",
             )
         
-        # Verify it tried multiple times
-        assert mock_client.chat.completions.create.call_count == 3
+        # Verify it tried multiple times (1 keyword extraction + 3 tailoring attempts)
+        assert mock_client.chat.completions.create.call_count == 4
 
 
 @pytest.mark.asyncio
@@ -302,8 +302,8 @@ async def test_tailor_cv_api_error_retries():
                     api_key="test-key",
                 )
             
-            # Verify it tried 3 times
-            assert mock_client.chat.completions.create.call_count == 3
+            # Verify it tried 3 times (1 keyword extraction + 3 tailoring attempts)
+            assert mock_client.chat.completions.create.call_count == 4
             
             # Verify exponential backoff (sleep called with increasing delays)
             assert mock_sleep.call_count == 2  # Sleep between attempts

@@ -61,7 +61,7 @@ async def client(db_session: AsyncSession):
     app.dependency_overrides[get_db] = _override_get_db
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=True) as ac:
         yield ac
 
     app.dependency_overrides.clear()
@@ -152,6 +152,21 @@ Certifications
 AWS Solutions Architect - Amazon Web Services (2023)
 Certified Kubernetes Administrator - CNCF (2022)
 """
+
+
+@pytest.fixture
+def test_db():
+    """Return the async session factory so tests can open their own sessions."""
+    return TestSessionLocal
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def clean_db():
+    """Clear all table rows between tests so each test gets a clean DB state."""
+    yield
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
 
 
 @pytest.fixture

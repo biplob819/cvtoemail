@@ -7,15 +7,32 @@ import Dashboard from './Dashboard';
 import * as api from '../api';
 import { mockCVData } from '../test/test-utils';
 
-// Mock the API module
+// Mock the entire API module
 vi.mock('../api', () => ({
   getCV: vi.fn(),
+  getDashboardStats: vi.fn(),
+  getRecentJobs: vi.fn(),
+  getSystemStatus: vi.fn(),
 }));
 
 const mockGetCV = api.getCV as ReturnType<typeof vi.fn>;
+const mockGetDashboardStats = api.getDashboardStats as ReturnType<typeof vi.fn>;
+const mockGetRecentJobs = api.getRecentJobs as ReturnType<typeof vi.fn>;
+const mockGetSystemStatus = api.getSystemStatus as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default dashboard data mocks so the regular dashboard renders
+  mockGetDashboardStats.mockResolvedValue({
+    active_sources: 0,
+    new_jobs_24h: 0,
+    cvs_sent_7d: 0,
+    last_scan: null,
+    total_jobs: 0,
+    total_applications: 0,
+  });
+  mockGetRecentJobs.mockResolvedValue([]);
+  mockGetSystemStatus.mockResolvedValue({ celery_running: true, next_scan: null });
 });
 
 describe('Dashboard', () => {
